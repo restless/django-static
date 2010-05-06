@@ -377,7 +377,11 @@ def _static_file(filename,
                 else:
                     extension = os.path.splitext(filepath)[1]
                 each_m_times.append(os.stat(filepath)[stat.ST_MTIME])
-                new_file_content.write(open(filepath, 'r').read().strip())
+                file_content = open(filepath, 'r').read().strip()
+                if filepath.endswith(".css"):
+                    file_content = referred_css_images_regex.sub(r"url(%s/\1)" % os.path.dirname(each), file_content)
+                
+                new_file_content.write(file_content)
                 new_file_content.write('\n')
             
             filename = _combine_filenames(filename)
@@ -444,6 +448,7 @@ def _static_file(filename,
             # and _static_file() all images refered in the CSS file itself
             def replacer(match):
                 filename = match.groups()[0]
+                filename = os.path.normpath(filename)
                 if (filename.startswith('"') and filename.endswith('"')) or \
                   (filename.startswith("'") and filename.endswith("'")):
                     filename = filename[1:-1]
