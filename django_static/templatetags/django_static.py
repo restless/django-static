@@ -537,7 +537,10 @@ def _mkdir(newdir):
         if head and not os.path.isdir(head):
             _mkdir(head)
         if tail:
-            os.mkdir(newdir)
+            try:
+                os.mkdir(newdir)
+            except Exception as (error_num, error_str):
+                raise OSError("Failed to create dir %s, error %d: %s" % (newdir, error_num, error_str))
             
             
 def _filename2filepath(filename, media_root):
