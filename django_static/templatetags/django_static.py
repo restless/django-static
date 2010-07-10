@@ -411,9 +411,9 @@ def _static_file(filename,
                 each_m_times.append(os.stat(filepath)[stat.ST_MTIME])
                 file_content = open(filepath, 'r').read().strip()
                 if filepath.endswith(".css"):
-                    file_content = referred_css_images_regex.sub(r"url(%s/\1)" % os.path.dirname(each), file_content)
+                    file_content = referred_css_images_regex.sub(r"url(%s/\1)" % os.path.dirname(each), file_content.decode('utf-8'))
                 
-                new_file_content.write(file_content)
+                new_file_content.write(file_content.encode('utf-8'))
                 new_file_content.write('\n')
             
             filename = _combine_filenames(filename)
