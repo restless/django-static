@@ -328,7 +328,7 @@ class StaticFilesNode(template.Node):
     
 _FILE_MAP = {}
 
-referred_css_images_regex = re.compile('url\(([^\)]+)\)')
+referred_css_images_regex = re.compile('url\([\s\'\"]*([^\)]+?)[\s\'\"]*\)')
 
 def _static_file(filename,
                  optimize_if_possible=False,
