@@ -404,9 +404,7 @@ def _static_file(filename,
             extension = None
             filenames = []
             for each in filename:
-                print each
                 filepath = _filename2filepath(each, settings.MEDIA_ROOT)
-                print filepath
                 if not os.path.isfile(filepath):
                     raise OSError(filepath)
                 
