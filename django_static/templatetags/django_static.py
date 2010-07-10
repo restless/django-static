@@ -4,6 +4,7 @@ import re
 import sys
 import stat
 import shutil
+import hashlib
 from glob import glob
 from collections import defaultdict
 from cStringIO import StringIO
@@ -408,7 +409,11 @@ def _static_file(filename,
                 else:
                     extension = os.path.splitext(filepath)[1]
                 each_m_times.append(os.stat(filepath)[stat.ST_MTIME])
-                new_file_content.write(open(filepath, 'r').read().strip())
+                file_content = open(filepath, 'r').read().strip()
+                if filepath.endswith(".css"):
+                    file_content = referred_css_images_regex.sub(r"url(%s/\1)" % os.path.dirname(each), file_content)
+                
+                new_file_content.write(file_content)
                 new_file_content.write('\n')
             
             filename = _combine_filenames(filename)
@@ -440,6 +445,13 @@ def _static_file(filename,
                                 '.%s' % new_m_time,
                                 apart[1]])
             
+            # Filenames longer than 255 bytes can cause problems on some file systems, 
+            # so truncate them and attach an sha1 hash
+            if len(new_filename) > 200:
+                tmp_name, timestamp, ext = re.match(r"(.*)\.(\d+).([a-z]+)", new_filename).groups()
+                sha1Hash = hashlib.sha1(str(new_filename)).hexdigest()
+                new_filename = ".".join((tmp_name[:200], timestamp, sha1Hash, ext))
+            
             fileinfo = (DJANGO_STATIC_NAME_PREFIX + new_filename, new_m_time)
                 
             _FILE_MAP[map_key] = fileinfo
@@ -448,7 +460,7 @@ def _static_file(filename,
                 old_new_filepath = _filename2filepath(old_new_filename, PREFIX)
                 if os.path.isfile(old_new_filepath):
                     os.remove(old_new_filepath)
-
+    
     new_filepath = _filename2filepath(new_filename, PREFIX)
      
     # Files are either slimmered or symlinked or just copied. Basically, only
@@ -475,6 +487,7 @@ def _static_file(filename,
             # and _static_file() all images refered in the CSS file itself
             def replacer(match):
                 filename = match.groups()[0]
+                filename = os.path.normpath(filename)
                 if (filename.startswith('"') and filename.endswith('"')) or \
                   (filename.startswith("'") and filename.endswith("'")):
                     filename = filename[1:-1]
@@ -561,15 +574,18 @@ def _mkdir(newdir):
         if head and not os.path.isdir(head):
             _mkdir(head)
         if tail:
-            os.mkdir(newdir)
+            try:
+                os.mkdir(newdir)
+            except Exception as (error_num, error_str):
+                raise OSError("Failed to create dir %s, error %d: %s" % (newdir, error_num, error_str))
             
             
 def _filename2filepath(filename, media_root):
-    # The reason we're doing this is because the templates will 
-    # look something like this:
-    # src="{{ MEDIA_URL }}/css/foo.css"
-    # and if (and often happens in dev mode) MEDIA_URL will 
-    # just be ''
+    media_root = media_root.rstrip("/")
+    media_url = settings.MEDIA_URL.rstrip("/")
+    
+    if(media_root.endswith(media_url)):
+        media_root = media_root[:len(media_url) * -1]
     
     if filename.startswith('/'):
         path = os.path.join(media_root, filename[1:])
@@ -578,7 +594,7 @@ def _filename2filepath(filename, media_root):
         
     if not os.path.isdir(os.path.dirname(path)):
         _mkdir(os.path.dirname(path))
-        
+    
     return path
     
     
