@@ -10,6 +10,7 @@ from collections import defaultdict
 from cStringIO import StringIO
 from subprocess import Popen, PIPE
 import warnings
+from urlparse import urlparse
 import codecs
 try:
     import chardet
@@ -403,7 +404,9 @@ def _static_file(filename,
             extension = None
             filenames = []
             for each in filename:
+                print each
                 filepath = _filename2filepath(each, settings.MEDIA_ROOT)
+                print filepath
                 if not os.path.isfile(filepath):
                     raise OSError(filepath)
                 
@@ -591,17 +594,18 @@ def _mkdir(newdir):
         if tail:
             try:
                 os.mkdir(newdir)
-            except Exception as (error_num, error_str):
+            except Exception, (error_num, error_str):
                 raise OSError("Failed to create dir %s, error %d: %s" % (newdir, error_num, error_str))
             
             
 def _filename2filepath(filename, media_root):
     media_root = media_root.rstrip("/")
-    media_url = settings.MEDIA_URL.rstrip("/")
-    
+    media_url = urlparse(settings.MEDIA_URL).path.rstrip("/")
+    filename = urlparse(filename).path
+
     if(media_root.endswith(media_url)):
         media_root = media_root[:len(media_url) * -1]
-    
+   
     if filename.startswith('/'):
         path = os.path.join(media_root, filename[1:])
     else:
